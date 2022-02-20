@@ -1,0 +1,10 @@
+dowd
+100
+david
+200
+arnav
+400
+dandu
+500
+slash
+10000
