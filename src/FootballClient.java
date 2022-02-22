@@ -16,19 +16,19 @@ public class FootballClient {
     	String hostName = args[0];//"10.157.1.252"; //"192.168.1.247"; //"10.156.4.133";
         int portNumber = 4000;
         
+        Scanner sc = new Scanner(System.in);
         boolean auto = true;
         while (true) {
         	if (!auto) break;
         	auto = false;
         	
-	        System.out.println("Attempting to connect to " + hostName + ":" + portNumber);
+	        System.out.println("Attempting to connect to " + hostName);
 	        Socket socket = new Socket(hostName, portNumber);
 	        try {
-	        	System.out.println("Connected to " + socket.getPort() + ":" + socket.getLocalPort());
+	        	System.out.println("Connected to " + hostName);
 	        	
 	        	PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 	        	BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-	        	Scanner sc = new Scanner(System.in);
 	        	
 	        	int moneyAvailable = 0;
 	        	
@@ -41,7 +41,7 @@ public class FootballClient {
 	        			out.println(getInputInBounds(1, 2, sc));
 	        		}
 	        		else if (fromServer.startsWith("gs")) {
-	        			System.out.println(fromServer.substring(2));
+	        			System.out.println("\n" + fromServer.substring(2));
 	        			out.println(getNonEmptyString(sc));
 	        		}
 	        		else if (fromServer.startsWith("ma")) {
@@ -51,7 +51,7 @@ public class FootballClient {
 	        			out.println(moneyUsed);
 	        		}
 	        		else if (fromServer.startsWith("ss")) {
-	        			System.out.println("Running game...");
+	        			System.out.println("\nRunning game...");
 	        			out.println(game.runGame());
 	        			// simulate game
 	        			// out.println(score);
@@ -61,29 +61,32 @@ public class FootballClient {
 	        			fromServer = in.readLine();
 	        			int min = Integer.parseInt(fromServer);
 	        			fromServer = in.readLine();
-	        			System.out.println(fromServer);
+	        			System.out.println("\n" + fromServer);
 	        			out.println(getInputInBounds(min, moneyAvailable, sc));
 	        		}
 	        		else if (fromServer.startsWith("eg")) {
+	        			out.close();
+	        			in.close();
 	        			socket.close();
 	        			
-	        			System.out.println("Would you like to play again? (Yes (1) or No(2)");
+	        			System.out.println("\nWould you like to play again? (Yes (1) or No(2))");
 	        			int choice = getInputInBounds(1, 2, sc);
 	        			
 	        			if (choice == 1) {
-	        				auto = true; continue;
+	        				sc.reset();
+	        				auto = true; break;
 	        			}
 	        			else break;
 	        		}
 	        		else System.out.println(fromServer);
 	        	}
-	        	
-	        	sc.close();
 	        } catch (Exception e) {
-	        	e.printStackTrace();
+	        	System.out.println("There was an error connecting to the server. Please try starting another game");
 	        	return;
 	        }
         }
+        
+        sc.close();
     }
 	
 	public static int getInputInBounds(int min, int max, Scanner sc) {

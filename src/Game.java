@@ -6,7 +6,6 @@ import java.util.Scanner;
 /*
 
 TODO:
-fix crashes + continued testing
 format client output
 
  */
@@ -47,7 +46,7 @@ public class Game implements Runnable {
 			return;
 		}
 		
-		player2.getConnection().write("Waiting other player...");
+		player2.getConnection().write("\nWaiting other player...");
 		player1.getConnection().write("gsEnter your name");
 		
 		String player1Name, player2Name;
@@ -59,7 +58,7 @@ public class Game implements Runnable {
 		}
 		
 		
-		player1.getConnection().write("Waiting for other player...");
+		player1.getConnection().write("\nWaiting for other player...");
 		player2.getConnection().write("gsEnter your name");
 		try {
 			player2Name = player2.getConnection().getString();

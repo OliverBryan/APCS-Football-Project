@@ -64,14 +64,14 @@ public class Server implements Runnable {
 				Connection connection1 = new Connection(player1Socket);
 				Player player1 = new Player(connection1);
 				
-				System.out.println("Accepted player 1 at " + player1Socket.getPort());
+				System.out.println("Accepted player 1 at " + player1Socket.getRemoteSocketAddress().toString().substring(1));
 				System.out.println("Waiting for another player...");
 				
 				player2Socket = serverSocket.accept();
 				Connection connection2 = new Connection(player2Socket);
 				Player player2 = new Player(connection2);
 				
-				System.out.println("Accepted player 2 at " + player2Socket.getPort());
+				System.out.println("Accepted player 2 at " + player2Socket.getRemoteSocketAddress().toString().substring(1));
 				
 				Game game = new Game(player1, player2, gameCount, dataFilePath);
 				System.out.println("Starting game " + gameCount);
