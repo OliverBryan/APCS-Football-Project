@@ -1,35 +1,120 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Scanner;
 
 import client.FantasyFootballPlayer;
+import client.QuarterBack;
+import client.RunningBack;
+import client.WideReceiver;
 
 public class ClientGame {
-	
+	private String qb = "║        QUARTERBACK        ║\n";
+	private String rb = "║       RUNNING BACK        ║\n";
+	private String wr = "║       WIDE RECEIVER       ║\n";
 	private ArrayList<FantasyFootballPlayer> team;
 	
 	public ClientGame() {
 		team = new ArrayList<>();
 	}
 
+	private int skill() {
+		return (int)((Math.pow(10, Math.random()))+0.6);
+	}
+
+	private FantasyFootballPlayer[] generatePlayer(String type, int amount) {
+		FantasyFootballPlayer[] players = new FantasyFootballPlayer[amount];
+		for(int i = 0; i < amount; i++) {
+			int skill1 = skill();
+			int skill2 = skill();
+			String bar1 = (skill1 != 10)?("║       Touchdown: " + skill1 + "        ║\n"):("║       Touchdown: " + skill1 + "       ║\n");
+			String bar2 = (skill2 != 10)?("║         Running: " + skill2 + "        ║\n"):("║         Running: " + skill2 + "       ║\n");
+			String box = "╔═══════════════════════════╗\n"+type+bar1+bar2+
+					"╚═══════════════════════════╝";
+			System.out.println(box);
+			if(type.equals(qb))
+				players[i] = new QuarterBack("Player " + i, skill1, skill2);
+			else if(type.equals(rb))
+				players[i] = new RunningBack("Player " + i, skill1, skill2);
+			else if(type.equals(wr))
+				players[i] = new WideReceiver("Player " + i, skill1, skill2);
+		}
+		return players;
+	}
+
 	// returns the amount of money used in rerolls (NOT the amount of money remaining) -- make sure money used does not exceed moneyAvailable
 	public int makeTeam(int moneyAvailable, Scanner sc) {
-		// what you need to do: generate a random team with 1 quarterback, 4 wide receivers, and 4 running backs
-		//
-		// for each player, generate a list of 3 players with randomized stats, show them to the player, and and allow the player
-		// to either pick a player, or re roll the list (costs $10, make sure they have enough money using moneyAvailable)
-		//
-		// in terms of generating random stats, you need to generate two stats, a yardMultiplier and a touchdownMultiplier, just pass
-		// these to the FantasyFootballPlayer constructor and it will take care of scoring with them. (the footballplayer class already 
-		// has an adequete toString for printing purposes)
-		//
-		// after you have finished selecting players, make sure to add all of them to the team array list, and then return the
-		// amount of money spend on re rolls (this is important)
-		//
-		// right now it just returns a random number as a dummy for the server
-		//
-		// IMPORTANT: MAKE SURE YOU USE THE SCANNER PASSED TO THE FUNCTION, OPENING A NEW SCANNER WILL NOT WORK (due to the way the server works -- quircky java)
-		
-		return (int) (Math.random() * moneyAvailable);
+		System.out.println("TEAM CREATION");
+		int rerolls = 0;
+		while(true) {
+			int response;
+			QuarterBack quarterBack = (QuarterBack)generatePlayer(qb, 1)[0];
+			if(moneyAvailable >= 10) {
+				System.out.println("Re-roll for 10? Yes(1) or No(2)");
+				response = sc.nextInt();
+				while(response != 1 && response != 2) {
+					System.out.println("Invalid input. Enter (1) or (2)");
+					response = sc.nextInt();
+				}
+				if(response == 2) {
+					team.add(quarterBack);
+					break;
+				}
+				moneyAvailable -= 10;
+				rerolls++;
+			} else {
+				team.add(quarterBack);
+				break;
+			}
+			System.out.println();
+		}
+
+		while(true) {
+			int response;
+			FantasyFootballPlayer[] rbs = generatePlayer(rb, 4);
+			if(moneyAvailable >= 10) {
+				System.out.println("Re-roll for 10? Yes(1) or No(2)");
+				response = sc.nextInt();
+				while(response != 1 && response != 2) {
+					System.out.println("Invalid input. Enter (1) or (2)");
+					response = sc.nextInt();
+				}
+				if(response == 2) {
+					team.addAll(Arrays.asList(rbs));
+					break;
+				}
+				moneyAvailable -= 10;
+				rerolls++;
+			} else {
+				team.addAll(Arrays.asList(rbs));
+				break;
+			}
+			System.out.println();
+		}
+
+		while(true) {
+			int response;
+			FantasyFootballPlayer[] wrs = generatePlayer(wr, 4);
+			if(moneyAvailable >= 10) {
+				System.out.println("Re-roll for 10? Yes(1) or No(2)");
+				response = sc.nextInt();
+				while(response != 1 && response != 2) {
+					System.out.println("Invalid input. Enter (1) or (2)");
+					response = sc.nextInt();
+				}
+				if(response == 2) {
+					team.addAll(Arrays.asList(wrs));
+					break;
+				}
+				moneyAvailable -= 10;
+				rerolls++;
+			} else {
+				team.addAll(Arrays.asList(wrs));
+				break;
+			}
+			System.out.println();
+		}
+
+		return rerolls*10;
 	}
 	
 	// returns the amount of points scored by the team, effectively simulates a game
@@ -43,7 +128,11 @@ public class ClientGame {
 		// can be compared between teams -- keep in mind teams with better stats should win most of the time, I am trusting you to balance this
 		//
 		// right now this returns a random number for testing with the server
-		
-		return (int) (Math.random() * 10);
+		double totalScore = 0;
+		for(FantasyFootballPlayer player : team) {
+			player.score((int)(Math.random()*10)+1, (int)(Math.random()*10)+1);
+			totalScore += player.getPoints();
+		}
+		return (int) (totalScore);
 	}
 }
