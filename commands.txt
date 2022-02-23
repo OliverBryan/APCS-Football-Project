@@ -1,0 +1,1 @@
+java -cp ./bin FootballClient 10.157.1.138
