@@ -62,7 +62,7 @@ public class FootballClient {
 	        			int min = Integer.parseInt(fromServer);
 	        			fromServer = in.readLine();
 	        			System.out.println("\n" + fromServer);
-	        			out.println(getInputInBounds(min, moneyAvailable, sc));
+	        			out.println(getInputInBounds(min + 1, moneyAvailable, sc));
 	        		}
 	        		else if (fromServer.startsWith("eg")) {
 	        			out.close();

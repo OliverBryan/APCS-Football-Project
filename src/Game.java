@@ -98,24 +98,56 @@ public class Game implements Runnable {
 		player1.getConnection().write("You are playing against " + player2.getInfo().name);
 		player2.getConnection().write("You are playing against " + player1.getInfo().name);
 		
-		int player1Bet = 0, player2Bet = 0;
+		int curBet = getBet();
+		if (curBet < 0)
+			return;
+		
+		broadcast("The bet is $" + curBet);
+		
+		makeTeams(curBet);
+		
+		Pair<Integer, Integer> scores = score();
+		if (scores.first < 0 && scores.second < 0) 
+			return;
+		
+		endGame(scores, curBet);
+		
+		try {
+			FileUtil.writePlayerInfo(dataFilePath, player1.getInfo());
+			FileUtil.writePlayerInfo(dataFilePath, player2.getInfo());
+		} catch (FileNotFoundException e) {
+			System.out.println("Error: could not write player data to data file");
+			e.printStackTrace();
+		}
+		
+		player1.getConnection().write("You now have $" + player1.getInfo().money);
+		player2.getConnection().write("You now have $" + player2.getInfo().money);
+		
+		broadcast("eg");
+	}
+	
+	private int getBet() {
+		int curBet = 0;
 		
 		player2.getConnection().write("Waiting for " + player1.getInfo().name + "...");
 		player1.getConnection().write("gb" + Math.min(player1.getInfo().money, player2.getInfo().money));
 		player1.getConnection().write("1");
 		player1.getConnection().write("Enter your bet (Can bet a max of $" + Math.min(player1.getInfo().money, player2.getInfo().money) + ")");
 		try {
-			player1Bet = player1.getConnection().get();
+			curBet = player1.getConnection().get();
 		} catch (IOException e) {
 			error("did not receive response from player 1");
-			return;
+			return -1;
 		}
 		
 		Player pivotPlayer = player2;
 		Player otherPlayer = player1;
 		
-		int curBet = player1Bet;
 		do {
+			if (curBet == Math.min(player1.getInfo().money, player1.getInfo().money)) {
+				break;
+			}
+			
 			otherPlayer.getConnection().write("Waiting for " + pivotPlayer.getInfo().name + "...");
 			//player2.getConnection().write("gb" + player2.getInfo().money);
 			pivotPlayer.getConnection().write("gi" + otherPlayer.getInfo().name + " bets " + curBet + ". Will you match(1) or raise(2)?");
@@ -124,7 +156,7 @@ public class Game implements Runnable {
 				response = pivotPlayer.getConnection().get();
 			} catch (IOException e) {
 				error("did not receive response from " + pivotPlayer.getInfo().name);
-				return;
+				return -1;
 			}
 			
 			System.out.println(response);
@@ -139,7 +171,7 @@ public class Game implements Runnable {
 					curBet = pivotPlayer.getConnection().get();
 				} catch (IOException e) {
 					error("did not receive response from player 1");
-					return;
+					return -1;
 				}
 				
 				Player temp = pivotPlayer;
@@ -149,13 +181,12 @@ public class Game implements Runnable {
 		
 		} while (true);
 		
-		player1Bet = player2Bet = curBet;
-		
-		player1.getConnection().write("The bet is " + curBet);
-		player2.getConnection().write("The bet is " + curBet);
-		
+		return curBet;
+	}
+	
+	private void makeTeams(int curBet) {
 		player2.getConnection().write("Waiting for " + player1.getInfo().name + "...");
-		player1.getConnection().write("ma" + (player1.getInfo().money - player1Bet));
+		player1.getConnection().write("ma" + (player1.getInfo().money - curBet));
 		try {
 			int moneyUsed = player1.getConnection().get();
 			System.out.println("Player 1 used $" + moneyUsed);
@@ -166,7 +197,7 @@ public class Game implements Runnable {
 		}
 		
 		player1.getConnection().write("Waiting for " + player2.getInfo().name + "...");
-		player2.getConnection().write("ma" + (player2.getInfo().money - player2Bet));
+		player2.getConnection().write("ma" + (player2.getInfo().money - curBet));
 		try {
 			int moneyUsed = player2.getConnection().get();
 			System.out.println("Player 2 used $" + moneyUsed);
@@ -175,7 +206,34 @@ public class Game implements Runnable {
 			error("did not recieve response from player 2");
 			return;
 		}
-		
+	}
+	
+	private void endGame(Pair<Integer, Integer> scores, int curBet) {
+		System.out.println("Game " + id + ": Player 1 scored " + scores.first + " and player 2 scored " + scores.second);
+		if (scores.first > scores.second) {
+			System.out.println("Game " + id + ": Player 1 wins");
+			
+			broadcast(player1.getInfo().name + " wins");
+			
+			player1.getInfo().money += curBet;
+			player2.getInfo().money -= curBet;
+		}
+		else if (scores.second > scores.first) {
+			System.out.println("Game " + id + ": Player 2 wins");
+			
+			broadcast(player2.getInfo().name + " wins");
+			
+			player1.getInfo().money -= curBet;
+			player2.getInfo().money += curBet;
+		}
+		else {
+			System.out.println("Game " + id + ": Tie game");
+			
+			broadcast("Tie game");
+		}
+	}
+	
+	private Pair<Integer, Integer> score() {
 		int player1Score = 0, player2Score = 0;
 		
 		player1.getConnection().write("ss");
@@ -183,7 +241,7 @@ public class Game implements Runnable {
 			player1Score = player1.getConnection().get();
 		} catch (IOException e) {
 			error("did not receive score from player 1");
-			return;
+			return new Pair<>(-1, -1);
 		}
 		
 		player2.getConnection().write("ss");
@@ -191,48 +249,15 @@ public class Game implements Runnable {
 			player2Score = player2.getConnection().get();
 		} catch (IOException e) {
 			error("did not receive score from player 2");
-			return;
+			return new Pair<>(-1, -1);
 		}
 		
-		System.out.println("Game " + id + ": Player 1 scored " + player1Score + " and player 2 scored " + player2Score);
-		if (player1Score > player2Score) {
-			System.out.println("Game " + id + ": Player 1 wins");
-			
-			player1.getConnection().write(player1.getInfo().name + " wins");
-			player2.getConnection().write(player1.getInfo().name + " wins");
-			
-			player1.getInfo().money += player2Bet;
-			player2.getInfo().money -= player2Bet;
-		}
-		else if (player2Score > player1Score) {
-			System.out.println("Game " + id + ": Player 2 wins");
-			
-			player1.getConnection().write(player2.getInfo().name + " wins");
-			player2.getConnection().write(player2.getInfo().name + " wins");
-			
-			player1.getInfo().money -= player1Bet;
-			player2.getInfo().money += player1Bet;
-		}
-		else {
-			System.out.println("Game " + id + ": Tie game");
-			
-			player1.getConnection().write("Tie game");
-			player2.getConnection().write("Tie game");
-		}
-		
-		try {
-			FileUtil.writePlayerInfo(dataFilePath, player1.getInfo());
-			FileUtil.writePlayerInfo(dataFilePath, player2.getInfo());
-		} catch (FileNotFoundException e) {
-			System.out.println("Error: could not write player data to data file");
-			e.printStackTrace();
-		}
-		
-		player1.getConnection().write("You now have $" + player1.getInfo().money);
-		player2.getConnection().write("You now have $" + player2.getInfo().money);
-		
-		player1.getConnection().write("eg");
-		player2.getConnection().write("eg");
+		return new Pair<>(player1Score, player2Score);
+	}
+	
+	private void broadcast(String msg) {
+		player1.getConnection().write(msg);
+		player2.getConnection().write(msg);
 	}
 	
 	public void start() {
